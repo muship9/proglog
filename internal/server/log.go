@@ -14,6 +14,7 @@ func NewLog() *Log {
 	return &Log{}
 }
 
+// Append スライスにレコードを追加
 func (c *Log) Append(record Record) (uint64, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -22,6 +23,7 @@ func (c *Log) Append(record Record) (uint64, error) {
 	return record.Offset, nil
 }
 
+// Read 引数の offset に一致するレコードを取得
 func (c *Log) Read(offset uint64) (Record, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
