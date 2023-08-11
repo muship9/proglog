@@ -3,6 +3,7 @@ package log
 import (
 	"github.com/tysonmote/gommap"
 	"io"
+	"log"
 	"os"
 )
 
@@ -27,7 +28,7 @@ func newIndex(f *os.File, c Config) (*index, error) {
 	}
 	idx.size = uint64(fi.Size())
 	if err = os.Truncate(
-		f.Name(), int64(c.Segment.maxIndexBytes),
+		f.Name(), int64(c.Segment.MaxIndexBytes),
 	); err != nil {
 		return nil, err
 	}
@@ -67,12 +68,31 @@ func (i *index) Read(in int64) (out uint32, pos uint64, err error) {
 	} else {
 		out = uint32(in)
 	}
+	log.Print(pos)
 	pos = uint64(out) * entWidth
 	if i.size < pos+entWidth {
+		log.Print("return error")
 		return 0, 0, io.EOF
 	}
 	out = enc.Uint32(i.mmap[pos : pos+offWidth])
 	pos = enc.Uint64(i.mmap[pos+offWidth : pos+entWidth])
 	return out, pos, nil
+}
 
+func (i *index) Write(off uint32, pos uint64) error {
+	if i.isMaxed() {
+		return io.EOF
+	}
+	enc.PutUint32(i.mmap[i.size:i.size+offWidth], off)
+	enc.PutUint64(i.mmap[i.size+offWidth:i.size+entWidth], pos)
+	i.size += uint64(entWidth)
+	return nil
+}
+
+func (i *index) isMaxed() bool {
+	return uint64(len(i.mmap)) < i.size+entWidth
+}
+
+func (i *index) Name() string {
+	return i.file.Name()
 }
